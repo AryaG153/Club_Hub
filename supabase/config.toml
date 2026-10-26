@@ -1,0 +1,19 @@
+project_id = "ehntqiebgnregercxbne"
+
+[api]
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+shadow_port = 54322
+
+[auth]
+site_url = "http://localhost:5000"
+additional_redirect_urls = ["http://localhost:5000", "http://localhost:8080"]
+
+[storage]
+file_size_limit = "50MiB"
+
+[auth.email]
+enable_confirmations = true
