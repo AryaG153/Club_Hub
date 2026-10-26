@@ -26,6 +26,8 @@ The registration form sends the display name, department, and student ID as Supa
 
 When email confirmation is required, Auth returns no session after registration. ClubHub displays a confirmation message; the user must confirm the email, then sign in with the same email/password. On sign-in and restored sessions, the app reads `public.profiles` by the Auth user UUID and routes by the database role. A missing profile is reported as an error; the app does not create a demo profile or sign in locally. Logout signs out from Supabase Auth and clears the in-memory repository.
 
+Password reset emails sent from Flutter Web redirect to the current site origin. Configure that origin (for local development, such as `http://localhost:5000`; for production, the actual deployed origin) in Supabase **Authentication → URL Configuration → Redirect URLs**. Opening a valid recovery link shows ClubHub's new-password form; a successful update returns the user to their authenticated area.
+
 Verify a registration in Supabase Dashboard → **Authentication → Users**, then **Table Editor → profiles**. Match `profiles.id` to the Auth user's UUID and check `display_name`, `email`, `department`, and `student_id`; the expected new-user role is `student`. Duplicate emails, confirmation requirements, and connection failures are surfaced in the registration/login UI. The configured Supabase Auth endpoint has been reached from this Codespace and reports email/password signup enabled, but an actual registration and matching profile have not yet been verified. Remote schema details and RLS policies are not exposed for inspection using only the publishable key; no privileged key was used.
 
 ## Database and Auth setup

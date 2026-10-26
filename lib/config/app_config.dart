@@ -1,6 +1,8 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'env_loader.dart';
+
 class AppConfig {
   static const String _appMode = String.fromEnvironment(
     'APP_MODE',
@@ -13,14 +15,29 @@ class AppConfig {
     'SUPABASE_PUBLISHABLE_KEY',
   );
 
+  static final Map<String, String> _runtimeEnv = <String, String>{};
+
   static Future<void> load() async {
     await dotenv.load(fileName: '.env', isOptional: true);
+    _runtimeEnv.clear();
+    final fileEnv = await loadRuntimeEnv();
+    _runtimeEnv.addAll(fileEnv);
+    for (final entry in _runtimeEnv.entries) {
+      dotenv.env[entry.key] = entry.value;
+    }
+  }
+
+  static String _valueFor(String key, String buildValue) {
+    if (buildValue.isNotEmpty) {
+      return buildValue;
+    }
+    return dotenv.env[key] ?? _runtimeEnv[key] ?? '';
   }
 
   static String get supabaseUrl =>
-      dotenv.env['SUPABASE_URL'] ?? _buildSupabaseUrl;
+      _valueFor('SUPABASE_URL', _buildSupabaseUrl);
   static String get supabasePublishableKey =>
-      dotenv.env['SUPABASE_PUBLISHABLE_KEY'] ?? _buildSupabasePublishableKey;
+      _valueFor('SUPABASE_PUBLISHABLE_KEY', _buildSupabasePublishableKey);
 
   static bool get isDemoMode => _appMode == 'demo';
 

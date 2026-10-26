@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/clubhub_models.dart';
@@ -62,7 +63,16 @@ class SupabaseAuthService {
   }
 
   Future<void> sendPasswordReset(String email) async {
-    await Supabase.instance.client.auth.resetPasswordForEmail(email.trim());
+    await Supabase.instance.client.auth.resetPasswordForEmail(
+      email.trim(),
+      redirectTo: kIsWeb ? Uri.base.origin : null,
+    );
+  }
+
+  Future<void> updatePassword(String password) async {
+    await Supabase.instance.client.auth.updateUser(
+      UserAttributes(password: password),
+    );
   }
 
   Future<AuthSession?> restoreSession() async {

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:club_hub/app.dart';
 import 'package:club_hub/config/app_config.dart';
 import 'package:club_hub/features/auth/login_screen.dart';
+import 'package:club_hub/features/auth/password_recovery_screen.dart';
 
 void main() {
   setUpAll(AppConfig.load);
@@ -114,6 +115,37 @@ void main() {
       'studentId': 'FCRIT-123',
     });
     expect(find.textContaining('Check your email to confirm'), findsOneWidget);
+  });
+
+  testWidgets('password recovery validates and submits the new password', (
+    WidgetTester tester,
+  ) async {
+    String? submittedPassword;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PasswordRecoveryScreen(
+          onSubmit: (password) async => submittedPassword = password,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Update password'));
+    await tester.pump();
+    expect(
+      find.text('Use a password with at least 8 characters.'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'password123');
+    await tester.enterText(find.byType(TextFormField).at(1), 'different123');
+    await tester.tap(find.text('Update password'));
+    await tester.pump();
+    expect(find.text('Passwords do not match.'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextFormField).at(1), 'password123');
+    await tester.tap(find.text('Update password'));
+    await tester.pumpAndSettle();
+    expect(submittedPassword, 'password123');
   });
 
   testWidgets('admin club management fits a narrow mobile viewport', (

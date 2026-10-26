@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'data/demo_repository.dart';
 import 'features/admin/admin_shell.dart';
 import 'features/auth/login_screen.dart';
+import 'features/auth/password_recovery_screen.dart';
 import 'features/student/student_shell.dart';
 import 'models/clubhub_models.dart';
 import 'services/app_auth_service.dart';
@@ -27,7 +31,9 @@ class _ClubHubAppState extends State<ClubHubApp> {
   ThemeMode _themeMode = ThemeMode.light;
   AuthSession? _session;
   bool _isInitializing = false;
+  bool _isRecoveringPassword = false;
   Object? _initializationError;
+  StreamSubscription<AuthState>? _authSubscription;
 
   bool get _isDemoMode => widget.demoModeOverride ?? AppConfig.isDemoMode;
 
@@ -84,7 +90,48 @@ class _ClubHubAppState extends State<ClubHubApp> {
     setState(() {
       _repository = ClubHubDemoRepository();
       _session = null;
+      _isRecoveringPassword = false;
     });
+  }
+
+  Future<void> _completePasswordRecovery(String password) async {
+    await _authService.updatePassword(password);
+    final session = await _authService.restoreSession();
+    if (session == null) {
+      throw StateError(
+        'Your password was updated, but your session expired. Please sign in.',
+      );
+    }
+    final repository = _repositoryFor(session);
+    await repository.load();
+    if (!mounted) return;
+    setState(() {
+      _session = session;
+      _repository = repository;
+      _isRecoveringPassword = false;
+    });
+  }
+
+  void _listenForAuthChanges() {
+    if (_isDemoMode || widget.startupError != null) return;
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen(
+      (state) {
+        if (!mounted) return;
+        if (state.event == AuthChangeEvent.passwordRecovery) {
+          setState(() => _isRecoveringPassword = true);
+        } else if (state.event == AuthChangeEvent.signedOut) {
+          setState(() {
+            _session = null;
+            _repository = ClubHubDemoRepository();
+            _isRecoveringPassword = false;
+          });
+        }
+      },
+      onError: (Object error) {
+        if (!mounted) return;
+        setState(() => _initializationError = error);
+      },
+    );
   }
 
   ClubHubDemoRepository _repositoryFor(AuthSession session) =>
@@ -104,6 +151,7 @@ class _ClubHubAppState extends State<ClubHubApp> {
     _initializationError = widget.startupError;
     _isInitializing = widget.startupError == null && !_isDemoMode;
     if (widget.startupError != null) return;
+    _listenForAuthChanges();
     _initializeSession();
   }
 
@@ -130,6 +178,12 @@ class _ClubHubAppState extends State<ClubHubApp> {
         _initializationError = error;
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -172,6 +226,8 @@ class _ClubHubAppState extends State<ClubHubApp> {
                 ),
               ),
             )
+          : _isRecoveringPassword
+          ? PasswordRecoveryScreen(onSubmit: _completePasswordRecovery)
           : _session == null
           ? LoginScreen(
               onLogin: _login,

@@ -67,6 +67,17 @@ class AppAuthService {
     return const SupabaseAuthService().sendPasswordReset(email);
   }
 
+  Future<void> updatePassword(String password) {
+    if (_isDemoMode) {
+      throw StateError(
+        'Password recovery is unavailable in demo mode. Set APP_MODE=live '
+        'and configure Supabase to update a real account.',
+      );
+    }
+    _requireLiveConfig();
+    return const SupabaseAuthService().updatePassword(password);
+  }
+
   Future<AuthSession?> restoreSession() async {
     if (_isDemoMode) {
       return null;
